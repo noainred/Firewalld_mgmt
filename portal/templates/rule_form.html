@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}규칙 {{ '추가' if mode=='new' else '수정' }} · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<h1>프록시 규칙 {{ '추가' if mode=='new' else '수정' }}</h1>
+
+<form method="post" class="form"
+      action="{{ url_for('rule_new') if mode=='new' else url_for('rule_edit', rule_id=rule_id) }}">
+  <label>이름 *
+    <input type="text" name="name" value="{{ rule.name or '' }}" required>
+  </label>
+  <label>설명
+    <input type="text" name="description" value="{{ rule.description or '' }}">
+  </label>
+
+  <fieldset>
+    <legend>출발지 (A 서버)</legend>
+    <label>출발지 IP / CIDR (비우면 모든 출발지 허용)
+      <input type="text" name="source_addr" placeholder="예: 10.0.1.10 또는 10.0.1.0/24"
+             value="{{ rule.source_addr or '' }}">
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>프록시 (이 서버)</legend>
+    <label>수신 포트 (A 가 접속하는 포트) *
+      <input type="number" name="listen_port" min="1" max="65535"
+             value="{{ rule.listen_port or '' }}" required>
+    </label>
+    <label>프로토콜 *
+      <select name="protocol">
+        {% for p in protocols %}
+          <option value="{{ p }}" {{ 'selected' if rule.protocol==p }}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>목적지 (B 서버)</legend>
+    <label>목적지 IP *
+      <input type="text" name="dest_addr" placeholder="예: 10.0.2.20"
+             value="{{ rule.dest_addr or '' }}" required>
+    </label>
+    <label>목적지 포트 *
+      <input type="number" name="dest_port" min="1" max="65535"
+             value="{{ rule.dest_port or '' }}" required>
+    </label>
+  </fieldset>
+
+  <label class="check">
+    <input type="checkbox" name="enabled" value="1"
+           {{ 'checked' if rule.enabled in [1, '1', 'on', true] }}>
+    활성화 (저장 즉시 firewalld 에 적용)
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">저장 및 적용</button>
+    <a class="btn" href="{{ url_for('rules') }}">취소</a>
+  </div>
+</form>
+{% endblock %}

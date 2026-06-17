@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}firewalld 프록시 포탈{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if current_user() %}
+<nav class="topbar">
+  <div class="brand">🔥 firewalld 프록시 포탈</div>
+  <div class="menu">
+    <a href="{{ url_for('dashboard') }}">대시보드</a>
+    <a href="{{ url_for('rules') }}">프록시 규칙</a>
+    <a href="{{ url_for('servers') }}">서버</a>
+    <a href="{{ url_for('logs') }}">로그</a>
+  </div>
+  <div class="user">
+    <span>👤 {{ current_user() }}</span>
+    <span class="zone">zone: {{ zone }}</span>
+    <a class="btn-logout" href="{{ url_for('logout') }}">로그아웃</a>
+  </div>
+</nav>
+{% endif %}
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

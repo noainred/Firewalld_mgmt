@@ -1,0 +1,24 @@
+[Unit]
+Description=firewalld 프록시 관리 포탈
+After=network.target firewalld.service
+Wants=firewalld.service
+
+[Service]
+Type=simple
+# firewall-cmd 실행 및 PAM 인증을 위해 root 로 실행합니다.
+# (root 미사용 시: 별도 사용자 + sudoers 로 firewall-cmd 허용 + FWPORTAL_USE_SUDO=1)
+User=root
+WorkingDirectory=/opt/firewalld-portal/portal
+Environment=FWPORTAL_PAM_SERVICE=login
+Environment=FWPORTAL_ZONE=public
+Environment=FWPORTAL_DB=/var/lib/firewalld-portal/portal.db
+# 운영 시 반드시 고정 시크릿 지정 (세션 유지)
+# Environment=FWPORTAL_SECRET_KEY=change-me-to-a-long-random-string
+# 특정 그룹만 로그인 허용하려면:
+# Environment=FWPORTAL_ALLOWED_GROUPS=wheel,fwadmin
+ExecStart=/usr/bin/gunicorn --workers 2 --bind 0.0.0.0:8080 app:app
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

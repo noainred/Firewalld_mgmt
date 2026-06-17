@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}대시보드 · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<h1>대시보드</h1>
+
+<div class="cards">
+  <div class="card"><div class="num">{{ rules|length }}</div><div>전체 규칙</div></div>
+  <div class="card"><div class="num">{{ active_count }}</div><div>활성 규칙</div></div>
+  <div class="card"><div class="num">{{ servers|length }}</div><div>등록 서버</div></div>
+  <div class="card">
+    <div class="num">{% if status and status.masquerade %}ON{% else %}OFF{% endif %}</div>
+    <div>masquerade</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h2>흐름 개요</h2>
+  </div>
+  <pre class="flow">
+   [A 서버 / client]  ──►  [프록시 (이 서버) listen_port]  ──DNAT──►  [B 서버 / target dest_port]
+        직접 통신 불가              firewalld forward-port + masquerade            응답은 역경로로 반환
+  </pre>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h2>firewalld 런타임 상태 (zone: {{ zone }})</h2>
+    <form method="post" action="{{ url_for('rules_sync') }}">
+      <button class="btn">DB → firewalld 동기화</button>
+    </form>
+  </div>
+  {% if fw_error %}
+    <div class="flash flash-error">{{ fw_error }}</div>
+  {% elif status %}
+    <h3>forward-ports</h3>
+    {% if status.forward_ports %}
+      <ul class="mono">{% for f in status.forward_ports %}<li>{{ f }}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">없음</p>{% endif %}
+    <h3>rich rules</h3>
+    {% if status.rich_rules %}
+      <ul class="mono">{% for r in status.rich_rules %}<li>{{ r }}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">없음</p>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

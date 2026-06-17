@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r portal/requirements.txt
+
+      - name: 셸 스크립트 문법 검사
+        run: |
+          for f in scripts/*.sh; do
+            echo "checking $f"
+            bash -n "$f"
+          done
+
+      - name: 파이썬 문법 컴파일
+        run: python -m py_compile portal/*.py
+
+      - name: 라우트 스모크 테스트 (DRY_RUN)
+        env:
+          FWPORTAL_DRY_RUN: "1"
+          FWPORTAL_DB: /tmp/fwci/portal.db
+        working-directory: portal
+        run: |
+          python - <<'PY'
+          import app as application
+          app = application.app
+          app.config['TESTING'] = True
+          c = app.test_client()
+
+          # 미인증 시 로그인으로 리다이렉트
+          r = c.get('/')
+          assert r.status_code == 302 and '/login' in r.headers['Location'], r.status_code
+
+          # 로그인 페이지 렌더링
+          r = c.get('/login')
+          assert r.status_code == 200 and b'<form' in r.data
+
+          # 세션 주입 후 주요 페이지 확인
+          with c.session_transaction() as s:
+              s['user'] = 'ci'
+          for path in ['/', '/rules', '/rules/new', '/servers', '/logs']:
+              r = c.get(path)
+              assert r.status_code == 200, (path, r.status_code)
+
+          # 규칙 생성 (firewall DRY_RUN)
+          r = c.post('/rules/new', data={
+              'name': 'web-A-to-B', 'protocol': 'tcp', 'listen_port': '8080',
+              'dest_addr': '10.0.2.20', 'dest_port': '80',
+              'source_addr': '10.0.1.10', 'enabled': '1'}, follow_redirects=True)
+          assert r.status_code == 200 and b'web-A-to-B' in r.data
+
+          # 잘못된 입력 검증
+          r = c.post('/rules/new', data={
+              'name': '', 'protocol': 'tcp', 'listen_port': '99999',
+              'dest_addr': 'notanip', 'dest_port': '80'})
+          assert r.status_code == 200
+
+          # 서버 등록
+          r = c.post('/servers', data={
+              'name': 'A', 'address': '10.0.1.10', 'role': 'client'},
+              follow_redirects=True)
+          assert r.status_code == 200 and b'10.0.1.10' in r.data
+
+          print('smoke test passed')
+          PY
+
+      - name: firewall-cmd 명령 생성 검증 (DRY_RUN)
+        env:
+          FWPORTAL_DRY_RUN: "1"
+        working-directory: portal
+        run: |
+          python - <<'PY'
+          import firewall
+          r1 = {'name': 'a', 'protocol': 'tcp', 'listen_port': 8080,
+                'dest_addr': '10.0.2.20', 'dest_port': 80, 'source_addr': '10.0.1.10'}
+          out = firewall._run(['--permanent', '--zone=public',
+                               f'--add-rich-rule={firewall._rich_rule(r1)}'])[1]
+          assert 'rich-rule' in out and 'to-addr="10.0.2.20"' in out, out
+
+          r2 = {'name': 'b', 'protocol': 'tcp', 'listen_port': 9090,
+                'dest_addr': '10.0.2.21', 'dest_port': 443, 'source_addr': None}
+          out = firewall._run(['--permanent', '--zone=public',
+                               f'--add-forward-port={firewall._forward_port_spec(r2)}'])[1]
+          assert 'port=9090:proto=tcp:toport=443:toaddr=10.0.2.21' in out, out
+          print('firewall command generation ok')
+          PY
