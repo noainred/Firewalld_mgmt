@@ -90,6 +90,24 @@ A 서버에서:
 ./scripts/test_connectivity.sh 10.0.1.100 8080
 ```
 
+## 실시간 통신 상태 (대시보드)
+
+대시보드 상단의 **실시간 통신 상태** 패널은 각 프록시 규칙의 `A → 프록시 → B` 흐름을
+시각적으로 보여주고 **3초마다 자동 갱신**됩니다.
+
+- 흐름이 있는 규칙은 초록색 테두리 + **패킷이 흐르는 애니메이션**으로 표시
+- 규칙별 **활성 연결 수**, TCP 상태(ESTABLISHED/TIME_WAIT/SYN_SENT 등), 접속 중인 출발지(A) IP 목록
+- 비활성 규칙은 회색/빨간 테두리로 구분
+- 데이터 소스는 커널 **연결 추적(conntrack)** — 별도 에이전트 불필요
+
+데이터는 다음 순서로 수집합니다(`portal/monitor.py`):
+1. `conntrack -L` (정확, root 권한 필요 — `conntrack-tools` 패키지)
+2. `/proc/net/nf_conntrack` (읽기 가능 시)
+3. `FWPORTAL_DRY_RUN=1` 데모 모드 — firewalld 없이 합성 데이터로 화면 확인
+
+> 정확한 실시간 집계를 위해 프록시 서버에 conntrack 도구 설치를 권장합니다:
+> `dnf install conntrack-tools` 또는 `apt install conntrack`
+
 ## CLI 로만 사용 (포탈 없이)
 
 ```bash

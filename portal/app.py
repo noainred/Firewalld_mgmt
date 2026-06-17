@@ -8,12 +8,13 @@ A 서버 <-> B 서버 간 직접 통신이 불가능할 때, 프록시 서버의
 import ipaddress
 import subprocess
 
-from flask import (Flask, flash, redirect, render_template, request,
+from flask import (Flask, flash, jsonify, redirect, render_template, request,
                    session, url_for)
 
 import auth
 import firewall
 import models
+import monitor
 from config import Config
 
 app = Flask(__name__)
@@ -127,6 +128,14 @@ def dashboard():
         status=status, fw_error=fw_error,
         active_count=sum(1 for r in rules if r["enabled"]),
     )
+
+
+# ---------------- 실시간 통신 상태 (AJAX) ----------------
+@app.route("/api/live")
+@auth.login_required
+def api_live():
+    """대시보드 실시간 통신 상태 JSON. (3초 주기 폴링)"""
+    return jsonify(monitor.get_live_stats(models.list_rules()))
 
 
 # ---------------- 규칙 관리 ----------------
