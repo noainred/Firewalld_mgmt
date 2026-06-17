@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}서버 · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<h1>서버 인벤토리</h1>
+<p class="muted">프록시 규칙에 사용할 A(client) / B(target) / 프록시 서버 정보를 관리합니다.</p>
+
+<div class="panel">
+  <h2>서버 등록</h2>
+  <form method="post" class="form-inline" action="{{ url_for('servers') }}">
+    <input type="text" name="name" placeholder="이름" required>
+    <input type="text" name="address" placeholder="IP 주소" required>
+    <select name="role">
+      {% for role in roles %}<option value="{{ role }}">{{ role }}</option>{% endfor %}
+    </select>
+    <input type="text" name="description" placeholder="설명(선택)">
+    <button class="btn btn-primary">등록</button>
+  </form>
+</div>
+
+<table class="grid">
+  <thead><tr><th>#</th><th>이름</th><th>역할</th><th>주소</th><th>설명</th><th>작업</th></tr></thead>
+  <tbody>
+  {% for s in servers %}
+    <tr>
+      <td>{{ s.id }}</td>
+      <td>{{ s.name }}</td>
+      <td><span class="badge badge-role">{{ s.role }}</span></td>
+      <td class="mono">{{ s.address }}</td>
+      <td>{{ s.description }}</td>
+      <td>
+        <form method="post" action="{{ url_for('server_delete', server_id=s.id) }}"
+              onsubmit="return confirm('삭제할까요?');">
+          <button class="btn btn-sm btn-danger">삭제</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="muted">등록된 서버가 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

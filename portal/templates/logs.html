@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}로그 · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<h1>로그</h1>
+
+<div class="panel">
+  <h2>감사 로그 (포탈 작업 내역)</h2>
+  <table class="grid">
+    <thead><tr><th>시각</th><th>사용자</th><th>작업</th><th>대상</th><th>상세</th><th>결과</th></tr></thead>
+    <tbody>
+    {% for a in audit %}
+      <tr>
+        <td class="mono">{{ a.ts }}</td>
+        <td>{{ a.actor }}</td>
+        <td>{{ a.action }}</td>
+        <td class="mono">{{ a.target }}</td>
+        <td>{{ a.detail }}</td>
+        <td>{% if '성공' in (a.result or '') %}<span class="badge badge-on">{{ a.result }}</span>
+            {% else %}<span class="badge badge-off">{{ a.result }}</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">기록 없음</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>firewalld 시스템 로그 (journalctl)</h2>
+  <pre class="logbox">{% for line in syslog %}{{ line }}
+{% endfor %}</pre>
+</div>
+{% endblock %}

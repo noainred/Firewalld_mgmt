@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}프록시 규칙 · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<div class="panel-head">
+  <h1>프록시 규칙</h1>
+  <a class="btn btn-primary" href="{{ url_for('rule_new') }}">+ 규칙 추가</a>
+</div>
+
+<table class="grid">
+  <thead>
+    <tr>
+      <th>#</th><th>이름</th><th>출발지(A)</th><th>수신포트</th>
+      <th>프로토콜</th><th>목적지(B)</th><th>상태</th><th>작업</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rules %}
+    <tr class="{{ 'disabled-row' if not r.enabled }}">
+      <td>{{ r.id }}</td>
+      <td>{{ r.name }}<br><small class="muted">{{ r.description }}</small></td>
+      <td class="mono">{{ r.source_addr or 'any' }}</td>
+      <td class="mono">{{ r.listen_port }}</td>
+      <td>{{ r.protocol }}</td>
+      <td class="mono">{{ r.dest_addr }}:{{ r.dest_port }}</td>
+      <td>
+        {% if r.enabled %}<span class="badge badge-on">활성</span>
+        {% else %}<span class="badge badge-off">비활성</span>{% endif %}
+      </td>
+      <td class="actions">
+        <a class="btn btn-sm" href="{{ url_for('rule_edit', rule_id=r.id) }}">수정</a>
+        <form method="post" action="{{ url_for('rule_toggle', rule_id=r.id) }}" style="display:inline">
+          <button class="btn btn-sm">{{ '중지' if r.enabled else '시작' }}</button>
+        </form>
+        <form method="post" action="{{ url_for('rule_delete', rule_id=r.id) }}" style="display:inline"
+              onsubmit="return confirm('규칙을 삭제할까요?');">
+          <button class="btn btn-sm btn-danger">삭제</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="muted">등록된 규칙이 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

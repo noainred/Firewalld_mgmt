@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}로그인 · firewalld 프록시 포탈{% endblock %}
+{% block content %}
+<div class="login-box">
+  <h1>🔥 firewalld 프록시 포탈</h1>
+  <p class="sub">OS 계정(PAM) 으로 로그인하세요.</p>
+  <form method="post" action="{{ url_for('login') }}">
+    <label>사용자명 (OS 계정)
+      <input type="text" name="username" autofocus autocomplete="username" required>
+    </label>
+    <label>비밀번호
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn btn-primary">로그인</button>
+  </form>
+</div>
+{% endblock %}
