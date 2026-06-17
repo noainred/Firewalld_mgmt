@@ -15,13 +15,122 @@
 
 <div class="panel">
   <div class="panel-head">
-    <h2>흐름 개요</h2>
+    <h2>실시간 통신 상태</h2>
+    <div class="live-meta">
+      <span id="live-dot" class="live-dot"></span>
+      <span id="live-summary" class="muted">불러오는 중…</span>
+      <label class="auto-toggle"><input type="checkbox" id="auto-refresh" checked> 자동 갱신(3초)</label>
+    </div>
   </div>
-  <pre class="flow">
-   [A 서버 / client]  ──►  [프록시 (이 서버) listen_port]  ──DNAT──►  [B 서버 / target dest_port]
-        직접 통신 불가              firewalld forward-port + masquerade            응답은 역경로로 반환
-  </pre>
+  <div id="live-flows" class="live-flows">
+    <p class="muted">실시간 데이터를 불러오는 중입니다…</p>
+  </div>
 </div>
+
+<template id="flow-template">
+  <div class="flow-card">
+    <div class="node node-a">
+      <div class="node-label">A · client</div>
+      <div class="node-addr js-src">any</div>
+    </div>
+    <div class="link js-link-a">
+      <div class="wire"><span class="pkt"></span><span class="pkt"></span><span class="pkt"></span></div>
+    </div>
+    <div class="node node-proxy">
+      <div class="node-label">PROXY</div>
+      <div class="node-addr"><span class="js-listen"></span></div>
+      <div class="js-rulename muted"></div>
+    </div>
+    <div class="link js-link-b">
+      <div class="wire"><span class="pkt"></span><span class="pkt"></span><span class="pkt"></span></div>
+    </div>
+    <div class="node node-b">
+      <div class="node-label">B · target</div>
+      <div class="node-addr js-dest"></div>
+    </div>
+    <div class="flow-stats">
+      <span class="conn-badge js-conn">0</span>
+      <span class="muted">활성 연결</span>
+      <div class="js-states states"></div>
+    </div>
+  </div>
+</template>
+
+<script>
+(function () {
+  const flowsEl = document.getElementById('live-flows');
+  const summaryEl = document.getElementById('live-summary');
+  const dotEl = document.getElementById('live-dot');
+  const autoEl = document.getElementById('auto-refresh');
+  const tpl = document.getElementById('flow-template');
+  let timer = null;
+
+  const SOURCE_LABEL = { conntrack: 'conntrack', nf_conntrack: '/proc conntrack', demo: '데모(합성)', none: '데이터 없음' };
+
+  function statusClass(s) {
+    return s === 'active' ? 'status-active' : (s === 'disabled' ? 'status-disabled' : 'status-idle');
+  }
+
+  function render(data) {
+    dotEl.className = 'live-dot ' + (data.total_active > 0 ? 'on' : 'off');
+    summaryEl.textContent =
+      `활성 연결 ${data.total_active}건 · 통신중 규칙 ${data.active_rules}개 · ` +
+      `소스: ${SOURCE_LABEL[data.source] || data.source} · ${data.generated_at}`;
+
+    if (!data.rules.length) {
+      flowsEl.innerHTML = '<p class="muted">등록된 규칙이 없습니다. 프록시 규칙을 추가하세요.</p>';
+      return;
+    }
+    flowsEl.innerHTML = '';
+    data.rules.forEach(function (r) {
+      const node = tpl.content.firstElementChild.cloneNode(true);
+      node.classList.add(statusClass(r.status));
+      node.querySelector('.js-src').textContent = r.source_addr;
+      node.querySelector('.js-listen').textContent = ':' + r.listen_port + '/' + r.protocol;
+      node.querySelector('.js-rulename').textContent = r.name;
+      node.querySelector('.js-dest').textContent = r.dest_addr + ':' + r.dest_port;
+      node.querySelector('.js-conn').textContent = r.active;
+
+      const flowing = r.status === 'active';
+      node.querySelector('.js-link-a').classList.toggle('flowing', flowing);
+      node.querySelector('.js-link-b').classList.toggle('flowing', flowing);
+
+      const statesEl = node.querySelector('.js-states');
+      statesEl.innerHTML = '';
+      if (r.status === 'disabled') {
+        const b = document.createElement('span'); b.className = 'state-chip off'; b.textContent = '비활성';
+        statesEl.appendChild(b);
+      } else {
+        Object.keys(r.states).forEach(function (k) {
+          const b = document.createElement('span');
+          b.className = 'state-chip'; b.textContent = k + ' ' + r.states[k];
+          statesEl.appendChild(b);
+        });
+      }
+      flowsEl.appendChild(node);
+    });
+  }
+
+  function fetchLive() {
+    fetch('{{ url_for("api_live") }}', { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(render)
+      .catch(function () {
+        dotEl.className = 'live-dot err';
+        summaryEl.textContent = '실시간 데이터를 불러오지 못했습니다.';
+      });
+  }
+
+  function schedule() {
+    if (timer) clearInterval(timer);
+    if (autoEl.checked) timer = setInterval(fetchLive, 3000);
+  }
+
+  autoEl.addEventListener('change', schedule);
+  fetchLive();
+  schedule();
+})();
+</script>
 
 <div class="panel">
   <div class="panel-head">

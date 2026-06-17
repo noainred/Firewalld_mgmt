@@ -79,6 +79,17 @@ jobs:
               follow_redirects=True)
           assert r.status_code == 200 and b'10.0.1.10' in r.data
 
+          # 실시간 통신 상태 API (데모 데이터)
+          r = c.get('/api/live')
+          assert r.status_code == 200, r.status_code
+          d = r.get_json()
+          assert d['source'] == 'demo' and isinstance(d['rules'], list)
+          assert all('status' in x and 'active' in x for x in d['rules'])
+
+          # 대시보드에 실시간 패널이 포함되는지
+          r = c.get('/')
+          assert b'live-flows' in r.data and b'flow-template' in r.data
+
           print('smoke test passed')
           PY
 
