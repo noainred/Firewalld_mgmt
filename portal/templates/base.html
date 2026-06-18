@@ -4,21 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}firewalld 프록시 포탈{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+<div class="bg-decor" aria-hidden="true"></div>
+
 {% if current_user() %}
+{% set ep = request.endpoint or '' %}
 <nav class="topbar">
-  <div class="brand">🔥 firewalld 프록시 포탈</div>
+  <a class="brand" href="{{ url_for('dashboard') }}">
+    <span class="brand-mark">🔥</span>
+    <span class="brand-text">firewalld <b>Proxy</b></span>
+  </a>
   <div class="menu">
-    <a href="{{ url_for('dashboard') }}">대시보드</a>
-    <a href="{{ url_for('rules') }}">프록시 규칙</a>
-    <a href="{{ url_for('servers') }}">서버</a>
-    <a href="{{ url_for('logs') }}">로그</a>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if ep == 'dashboard' }}">대시보드</a>
+    <a href="{{ url_for('rules') }}" class="{{ 'active' if ep in ['rules','rule_new','rule_edit'] }}">프록시 규칙</a>
+    <a href="{{ url_for('servers') }}" class="{{ 'active' if ep in ['servers','server_delete'] }}">서버</a>
+    <a href="{{ url_for('logs') }}" class="{{ 'active' if ep == 'logs' }}">로그</a>
   </div>
   <div class="user">
-    <span>👤 {{ current_user() }}</span>
-    <span class="zone">zone: {{ zone }}</span>
+    <span class="zone-chip">zone · {{ zone }}</span>
+    <span class="avatar" title="{{ current_user() }}">{{ current_user()[:1]|upper }}</span>
+    <span class="uname">{{ current_user() }}</span>
     <a class="btn-logout" href="{{ url_for('logout') }}">로그아웃</a>
   </div>
 </nav>
